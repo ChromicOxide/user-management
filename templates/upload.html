@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}上传头像 - 用户管理系统{% endblock %}
+{% block content %}
+<div class="card" role="region" aria-label="上传头像区域">
+
+    <h2 class="card-title" id="upload-heading">上传头像</h2>
+
+    {% if error %}
+        <div class="error-msg" role="alert" aria-live="assertive" aria-atomic="true">
+            {{ error }}
+        </div>
+    {% endif %}
+
+    {% if file_url %}
+    <div class="upload-success">
+        <div class="success-msg" role="alert" aria-live="assertive" aria-atomic="true">上传成功！</div>
+        <div class="upload-preview" style="margin-top:16px;">
+            <h3 class="section-title">预览：</h3>
+            <div class="preview-image" style="margin:12px 0;text-align:center;">
+                <img src="{{ file_url }}" alt="用户头像预览" style="max-width:100%;max-height:300px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+            </div>
+            <p class="file-link" style="text-align:center;word-break:break-all;">
+                文件链接：<a href="{{ file_url }}" target="_blank">{{ file_url }}</a>
+            </p>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:16px;">
+            <a href="/upload" class="btn btn-primary">继续上传</a>
+            <a href="/" class="btn btn-primary" style="background:#8c8c8c;">返回首页</a>
+        </div>
+    </div>
+    {% else %}
+    <form method="POST" action="/upload" class="login-form" enctype="multipart/form-data" aria-labelledby="upload-heading">
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group">
+            <label for="file">选择头像文件（支持 jpg/png/gif/webp/bmp）</label>
+            <input type="file" id="file" name="file" class="form-input" required accept=".jpg,.jpeg,.png,.gif,.webp,.bmp">
+        </div>
+
+        <button type="submit" class="btn btn-primary" aria-label="上传文件">上传</button>
+    </form>
+    {% endif %}
+
+    <div class="back-link" style="margin-top:20px;text-align:center;">
+        <a href="/" class="btn btn-primary" aria-label="返回首页" style="background:#8c8c8c;">返回首页</a>
+    </div>
+
+</div>
+{% endblock %}

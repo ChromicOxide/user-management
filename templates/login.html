@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}用户登录 - 用户管理系统{% endblock %}
+{% block content %}
+<div class="card login-card" role="region" aria-label="登录表单区域">
+
+    <!-- [无障碍] 页面标题 -->
+    <h2 class="card-title" id="login-heading">用户登录</h2>
+
+    <!-- [无障碍] 错误提示使用 aria-live 和 aria-atomic 告知屏幕阅读器 -->
+    {% if error %}
+        <div class="error-msg" role="alert" aria-live="assertive" aria-atomic="true" id="login-error">
+            {{ error }}
+        </div>
+    {% endif %}
+
+    {% if success %}
+        <div class="success-msg" role="alert" aria-live="assertive" aria-atomic="true">
+            {{ success }}
+        </div>
+    {% endif %}
+
+    <!-- [安全] 表单绑定 CSRF token -->
+    <form method="POST" action="/login" class="login-form" aria-labelledby="login-heading" novalidate>
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group">
+            <label for="username" id="username-label">用户名</label>
+            <input
+                type="text"
+                id="username"
+                name="username"
+                class="form-input"
+                placeholder="请输入用户名"
+                maxlength="50"
+                autocomplete="username"
+                required
+                aria-required="true"
+                aria-labelledby="username-label"
+                aria-describedby="username-hint"
+            >
+            <span id="username-hint" class="form-hint" aria-hidden="true">请输入您的账户名</span>
+        </div>
+
+        <div class="form-group">
+            <label for="password" id="password-label">密码</label>
+            <input
+                type="password"
+                id="password"
+                name="password"
+                class="form-input"
+                placeholder="请输入密码"
+                maxlength="128"
+                autocomplete="current-password"
+                required
+                aria-required="true"
+                aria-labelledby="password-label"
+                aria-describedby="password-hint"
+            >
+            <span id="password-hint" class="form-hint" aria-hidden="true">请输入您的密码</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary" aria-label="提交登录信息">登录</button>
+    </form>
+</div>
+{% endblock %}

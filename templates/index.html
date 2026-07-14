@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}首页 - 用户管理系统{% endblock %}
+{% block content %}
+<div class="card" role="region" aria-label="用户信息区域">
+
+    {% if user %}
+        <!-- 已登录状态 -->
+        <h2 class="card-title" id="welcome-heading" tabindex="-1" aria-live="polite">
+            欢迎回来，{{ user.username }}！
+        </h2>
+
+        <div class="user-info" role="list" aria-label="用户信息列表">
+            <div class="info-item" role="listitem">
+                <span class="info-label" id="label-username">用户名</span>
+                <span class="info-value" aria-labelledby="label-username">{{ user.username }}</span>
+            </div>
+            <div class="info-item" role="listitem">
+                <span class="info-label" id="label-email">邮箱</span>
+                <span class="info-value" aria-labelledby="label-email">{{ user.email }}</span>
+            </div>
+            <div class="info-item" role="listitem">
+                <span class="info-label" id="label-phone">手机</span>
+                <span class="info-value" aria-labelledby="label-phone">{{ user.phone }}</span>
+            </div>
+            <div class="info-item" role="listitem">
+                <span class="info-label" id="label-role">角色</span>
+                <span class="info-value" aria-labelledby="label-role">{{ user.role }}</span>
+            </div>
+            <div class="info-item" role="listitem">
+                <span class="info-label" id="label-balance">余额</span>
+                <span class="info-value" aria-labelledby="label-balance">{{ user.balance }}</span>
+            </div>
+        </div>
+
+        <!-- 搜索功能 -->
+        <div class="search-section">
+            <h3 class="section-title">用户搜索</h3>
+            <form method="GET" action="/search" class="search-form">
+                <div class="search-group">
+                    <input type="text" name="keyword" class="form-input search-input" placeholder="搜索用户名或邮箱..." value="{{ search_keyword or '' }}">
+                    <button type="submit" class="btn btn-primary search-btn">搜索</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 快捷入口 -->
+        <div class="upload-shortcut" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="/upload" class="btn btn-primary">上传头像</a>
+            <a href="/profile" class="btn btn-primary" style="background:#52c41a;">个人中心</a>
+            <a href="/page?name=help" class="btn btn-primary" style="background:#722ed1;">帮助中心</a>
+        </div>
+
+        {% if search_results is not none %}
+        <div class="search-results">
+            <h3 class="section-title">
+                搜索结果
+                {% if search_keyword %}
+                <span class="search-keyword">「{{ search_keyword }}」</span>
+                {% endif %}
+            </h3>
+            {% if search_results %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>用户名</th>
+                        <th>邮箱</th>
+                        <th>手机</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in search_results %}
+                    <tr>
+                        <td>{{ row[0] }}</td>
+                        <td>{{ row[1] }}</td>
+                        <td>{{ row[2] }}</td>
+                        <td>{{ row[3] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="no-result">无搜索结果</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- 退出按钮 -->
+        <form method="POST" action="/logout" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger" aria-label="退出当前登录状态">退出登录</button>
+        </form>
+
+    {% else %}
+        <!-- 未登录状态 -->
+        <h2 class="card-title" id="guest-heading">请先登录</h2>
+        <p class="card-text" id="guest-desc">您尚未登录系统，登录后可查看个人信息。</p>
+        <a
+            href="/login"
+            class="btn btn-primary"
+            role="button"
+            aria-label="前往登录页面"
+            aria-describedby="guest-desc"
+        >前往登录</a>
+    {% endif %}
+
+    {% if page_content %}
+    <div class="card" role="region" aria-label="页面内容" style="margin-top:20px;">
+        <div class="dynamic-page-content">
+            {{ page_content | safe }}
+        </div>
+    </div>
+    {% elif page_error %}
+    <div class="card" style="margin-top:20px;">
+        <div class="error-msg" role="alert">{{ page_error }}</div>
+        <div style="text-align:center;margin-top:12px;">
+            <a href="/" class="btn btn-primary" style="background:#8c8c8c;">返回首页</a>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}用户管理系统{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- [无障碍] 跳转到主内容的快捷键，方便键盘和屏幕阅读器用户 -->
+    <a href="#main-content" class="skip-link" aria-label="跳到主内容">跳到主内容</a>
+
+    <!-- [无障碍] 使用 ARIA landmark 标记导航区域 -->
+    <nav class="navbar" role="navigation" aria-label="主导航">
+        <div class="nav-brand" aria-label="系统名称">用户管理系统</div>
+        <div class="nav-menu" role="menubar" aria-label="用户菜单">
+            {% if session.get('username') %}
+                <span class="nav-welcome" aria-live="polite">
+                    <span aria-hidden="true">👋 </span>欢迎，{{ session['username'] }}
+                </span>
+                <a href="/upload" class="nav-link" role="menuitem" aria-label="上传头像">上传头像</a>
+                <a href="/profile" class="nav-link" role="menuitem" aria-label="个人中心">个人中心</a>
+                <!-- [安全] 登出表单带 CSRF token，POST 提交 -->
+                <form method="POST" action="/logout" class="logout-form" role="menuitem">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="nav-link-btn" aria-label="退出登录">退出</button>
+                </form>
+            {% else %}
+                <a href="/login" class="nav-link" role="menuitem" aria-label="前往登录页面">登录</a>
+                <a href="/register" class="nav-link" role="menuitem" aria-label="前往注册页面">注册</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- [无障碍] 主内容区使用 role="main" 和 id 锚点 -->
+    <main id="main-content" class="container" role="main" aria-label="页面主要内容">
+        {% if error_code and error_msg %}
+            <!-- [无障碍] 错误详情区域，用 role="alert" 即时通知屏幕阅读器 -->
+            <div class="card" role="alert" aria-live="assertive">
+                <h2 class="card-title" aria-label="错误 {{ error_code }}">{{ error_code }} - {{ error_msg }}</h2>
+                <p class="card-text">请返回 <a href="/" class="btn btn-primary" aria-label="返回首页">首页</a></p>
+            </div>
+        {% else %}
+            {% block content %}{% endblock %}
+        {% endif %}
+    </main>
+
+    <!-- [无障碍] 页脚信息 -->
+    <footer class="footer" role="contentinfo" aria-label="页面底部信息">
+        <p>&copy; {{ now().year if now is defined else "2025" }} 用户管理系统 · 安全合规版本</p>
+    </footer>
+</body>
+</html>
