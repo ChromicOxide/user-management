@@ -3,7 +3,12 @@ import secrets
 import time
 import logging
 import sqlite3
+import socket
+import ipaddress
+import urllib.request
+import urllib.error
 from datetime import datetime
+from urllib.parse import urlparse
 from flask import Flask, render_template, request, redirect, session, abort, url_for
 
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -656,11 +661,101 @@ def change_password():
     return redirect("/profile")
 
 
+# ── URL 抓取 ──────────────────────────────────────────
+ALLOWED_PROTOCOLS = {"http", "https"}
+FORBIDDEN_IPS = {
+    "127.0.0.1", "0.0.0.0", "localhost",
+    "169.254.169.254", "metadata.google.internal",
+    "100.100.100.200",  # 阿里云
+}
+FORBIDDEN_NETWORKS = [
+    "127.0.0.0/8",
+    "10.0.0.0/8",
+    "172.16.0.0/12",
+    "192.168.0.0/16",
+    "169.254.0.0/16",
+]
+
+
+def _is_internal_ip(host: str) -> bool:
+    """检查 host 是否为内网地址"""
+    # 先检查已知的禁止 IP
+    if host.lower() in FORBIDDEN_IPS:
+        return True
+    # 尝试解析域名
+    try:
+        ips = set()
+        addr = socket.getaddrinfo(host, None)
+        for info in addr:
+            ip = info[4][0]
+            ips.add(ip)
+        for ip in ips:
+            if ip in FORBIDDEN_IPS:
+                return True
+            ip_obj = ipaddress.ip_address(ip)
+            for net in FORBIDDEN_NETWORKS:
+                if ip_obj in ipaddress.ip_network(net):
+                    return True
+    except Exception:
+        # 如果无法解析，保守起见拒绝
+        return True
+    return False
+
+
+@app.route("/fetch-url", methods=["POST"])
+@login_required
+def fetch_url():
+    target_url = request.form.get("url", "").strip()
+    result = None
+    status_code = None
+    error = None
+
+    if target_url:
+        # [安全] 协议白名单
+        parsed = urlparse(target_url)
+        if parsed.scheme not in ALLOWED_PROTOCOLS:
+            error = "不支持的协议类型，仅允许 http:// 和 https://"
+        # [安全] 长度限制
+        elif len(target_url) > 2048:
+            error = "URL 过长"
+        else:
+            # [安全] 检查目标地址
+            host = parsed.hostname or ""
+            if _is_internal_ip(host):
+                error = "不允许访问内网地址"
+            else:
+                try:
+                    # [安全] 自定义 opener，不跟随重定向
+                    class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+                        def redirect_request(self, req, fp, code, msg, headers, newurl):
+                            return None
+                    opener = urllib.request.build_opener(NoRedirectHandler)
+                    req = urllib.request.Request(target_url)
+                    with opener.open(req, timeout=10) as response:
+                        status_code = response.status
+                        content = response.read().decode("utf-8", errors="replace")
+                        result = content[:5000]
+                except urllib.error.HTTPError as e:
+                    status_code = e.code
+                    result = str(e)
+                except urllib.error.URLError as e:
+                    error = f"URL 访问失败: {e.reason}"
+                except Exception as e:
+                    error = f"请求异常: {str(e)}"
+
+    username = session.get("username")
+    user_info = None
+    if username and username in USERS:
+        user_info = sanitize_user_info(USERS[username])
+
+    return render_template("index.html", user=user_info,
+                           fetch_result=result, fetch_status=status_code, fetch_error=error,
+                           fetch_url=target_url)
+
+
 # ── 启动 ──────────────────────────────────────────────────
 if __name__ == "__main__":
     init_db()
     import werkzeug.serving as _ws
     _ws.WSGIRequestHandler.version_string = lambda self: "WebServer"
     app.run(host="0.0.0.0", port=5000)
-
-# 64912941
