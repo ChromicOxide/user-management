@@ -81,8 +81,14 @@ def init_db():
         username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         email TEXT,
-        phone TEXT
+        phone TEXT,
+        balance INTEGER DEFAULT 0
     )''')
+    # [兼容] 为旧数据库补充 balance 列
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN balance INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass  # 列已存在，忽略
     # [修复] 密码存储为 bcrypt 哈希，而非明文
     admin_hash = generate_password_hash("admin123")
     alice_hash = generate_password_hash("alice2025")
@@ -101,7 +107,7 @@ def get_user_from_db(username):
     try:
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
-        c.execute("SELECT username, password, email, phone FROM users WHERE username = ?", (username,))
+        c.execute("SELECT username, password, email, phone, balance FROM users WHERE username = ?", (username,))
         row = c.fetchone()
         if row:
             result = {
@@ -110,7 +116,7 @@ def get_user_from_db(username):
                 "email": row[2] or "",
                 "phone": row[3] or "",
                 "role": "user",
-                "balance": 0,
+                "balance": row[4] or 0,
             }
             return result
         return None
