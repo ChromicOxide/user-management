@@ -5,6 +5,8 @@ import logging
 import sqlite3
 import socket
 import ipaddress
+import subprocess
+import platform
 import urllib.request
 import urllib.error
 from datetime import datetime
@@ -751,6 +753,62 @@ def fetch_url():
     return render_template("index.html", user=user_info,
                            fetch_result=result, fetch_status=status_code, fetch_error=error,
                            fetch_url=target_url)
+
+
+# ── Ping 网络诊断 ──────────────────────────────────────
+import re as _re
+
+ALLOWED_PING_PATTERN = _re.compile(r"^(?:::)?[a-fA-F0-9](?:[a-fA-F0-9:]*[a-fA-F0-9])?$|^[a-zA-Z0-9](?:[a-zA-Z0-9\-\.]*[a-zA-Z0-9])?$")
+
+
+def _validate_ip_or_domain(target: str) -> bool:
+    """校验输入是否为合法的 IP 地址或域名"""
+    if not target or len(target) > 255:
+        return False
+    # 检查是否包含 shell 特殊字符（冒号在 IPv6 中合法）
+    forbidden = {";", "|", "&", "$", "`", "(", ")", "{", "}", "<", ">", "!", "#", "~", "%", "\"", "'", " ", "\t", "\n", "\r", "\\"}
+    # 如果包含冒号，验证是否为纯 IPv6 地址格式
+    if ":" in target:
+        if not _re.match(r"^[a-fA-F0-9:]+$", target):
+            return False
+    elif any(ch in target for ch in forbidden):
+        return False
+    return bool(ALLOWED_PING_PATTERN.match(target))
+
+
+@app.route("/ping", methods=["GET", "POST"])
+@login_required
+def ping():
+    result = None
+    ip = ""
+    error = None
+
+    if request.method == "POST":
+        ip = request.form.get("ip", "").strip()
+        if not ip:
+            error = "请输入 IP 地址或域名"
+        elif len(ip) > 255:
+            error = "输入过长"
+        elif not _validate_ip_or_domain(ip):
+            error = "输入包含非法字符，仅允许字母、数字、点、中划线、下划线和冒号"
+        else:
+            try:
+                # [安全] 使用列表参数，禁用 shell=True，杜绝命令注入
+                cmd = ["ping", "-c", "3", ip]
+                result = subprocess.check_output(cmd, shell=False, timeout=30, stderr=subprocess.STDOUT).decode("utf-8", errors="replace")
+            except subprocess.CalledProcessError as e:
+                result = e.output.decode("utf-8", errors="replace")
+            except subprocess.TimeoutExpired:
+                result = "Ping 超时"
+            except Exception as e:
+                result = f"执行失败: {str(e)}"
+
+    username = session.get("username")
+    user_info = None
+    if username and username in USERS:
+        user_info = sanitize_user_info(USERS[username])
+
+    return render_template("ping.html", user=user_info, ping_result=result, ping_error=error, ping_ip=ip)
 
 
 # ── 启动 ──────────────────────────────────────────────────
