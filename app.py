@@ -1,4 +1,6 @@
 import os
+import re
+import json
 import secrets
 import time
 import logging
@@ -815,6 +817,49 @@ def ping():
         user_info = sanitize_user_info(USERS[username])
 
     return render_template("ping.html", user=user_info, ping_result=result, ping_error=error, ping_ip=ip)
+
+
+# ── XML 数据导入 ──────────────────────────────────────
+@app.route("/xml-import", methods=["GET", "POST"])
+@login_required
+def xml_import():
+    result = None
+    error = None
+
+    if request.method == "POST":
+        xml_data = request.form.get("xml_data", "").strip()
+        if xml_data:
+            try:
+                # [安全] 剥离 DTD 声明（<!DOCTYPE ...> 及内部定义），防止 XXE
+                xml_data = re.sub(r'<!DOCTYPE[^]]*]>', "", xml_data, flags=re.DOTALL)
+                xml_data = re.sub(r'<!ENTITY[^>]*>', "", xml_data)
+                # [安全] 剥离未定义的实体引用（&xxx;），防止 DTD 剥离后残留
+                xml_data = re.sub(r'&(?!(?:amp|lt|gt|quot|apos);)\w+;', "", xml_data)
+                xml_data_no_dtd = xml_data
+
+                import xml.etree.ElementTree as ET
+                root = ET.fromstring(xml_data_no_dtd)
+                users = []
+                for user_elem in root.findall(".//user"):
+                    name = user_elem.get("name", "") or user_elem.findtext("name", "")
+                    email = user_elem.findtext("email", "")
+                    users.append({"name": name, "email": email})
+
+                if users:
+                    result = json.dumps({"users": users, "total": len(users)}, ensure_ascii=False, indent=2)
+                else:
+                    error = "未找到 user 节点"
+            except ET.ParseError as e:
+                error = f"XML 解析失败: {str(e)}"
+            except Exception as e:
+                error = f"处理异常: {str(e)}"
+
+    username = session.get("username")
+    user_info = None
+    if username and username in USERS:
+        user_info = sanitize_user_info(USERS[username])
+
+    return render_template("xml_import.html", user=user_info, xml_result=result, xml_error=error)
 
 
 # ── 启动 ──────────────────────────────────────────────────

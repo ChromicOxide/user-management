@@ -439,6 +439,15 @@ body {
     overflow-y: auto;
 }
 
+/* ── XML 文本框 ──────────────────────────────────────── */
+.xml-textarea {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 300px;
+    resize: vertical;
+}
+
 /* ── 响应式 ────────────────────────────────────────── */
 @media (max-width: 640px) {
     .navbar {

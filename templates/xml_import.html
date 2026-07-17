@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}XML 数据导入 - 用户管理系统{% endblock %}
+{% block content %}
+<div class="card" role="region" aria-label="XML 导入区域">
+
+    <h2 class="card-title" id="xml-heading">XML 数据导入</h2>
+
+    {% if xml_error %}
+    <div class="error-msg" role="alert" aria-live="assertive" aria-atomic="true">{{ xml_error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/xml-import" class="xml-form" aria-labelledby="xml-heading">
+
+        <div class="form-group">
+            <label for="xml_data">XML 数据</label>
+            <textarea id="xml_data" name="xml_data" class="form-input xml-textarea" rows="15" placeholder="粘贴 XML 数据..." required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">导入</button>
+    </form>
+
+    {% if xml_result %}
+    <div class="xml-output" style="margin-top:20px;">
+        <h3 class="section-title">解析结果</h3>
+        <pre class="console-output">{{ xml_result }}</pre>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
